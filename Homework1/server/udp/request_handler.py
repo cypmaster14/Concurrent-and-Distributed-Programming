@@ -1,6 +1,8 @@
 import socket
 import threading
 
+import time
+
 from settings import *
 from utils import get_byte_data, get_message
 
@@ -14,15 +16,43 @@ class RequestHandler(threading.Thread):
         print("Client Address:{}".format(self.address))
 
     def stream_message(self, total_message_size):
-        pass
+        print("Receive a file of size:{}".format(total_message_size))
+        print("Message block:{}".format(MESSAGE_BLOCK))
+
+        messages_received = 0
+        bytes_received = 0
+        with open(FILE_NAME_UDP, mode="wb") as file_object:
+            while True:
+                message, _ = self.socket_descriptor.recvfrom(MESSAGE_BLOCK)
+                if not message:
+                    break
+
+                file_object.write(message)
+                print("Received {} bytes".format(len(message)))
+
+                messages_received += 1
+                bytes_received += len(message)
+                time.sleep(1)
+                if len(message) != MESSAGE_BLOCK:
+                    break
+
+        print("File was received")
+
+        self.socket_descriptor.close()
+
+        print("Protocol: UDP")
+        print("Number of messages read: {}".format(messages_received))
+        print("Number of bytes received: {}".format(bytes_received))
 
     def stop_and_wait(self, total_message_size):
-        pass
+        print("Stop and wait a file of size:{}".format(total_message_size))
+        print("Message block:{}".format(MESSAGE_BLOCK))
 
     def run(self):
-        print("Handling client requests ")
+        print("Handling client requests")
 
-        option, _ = self.socket_descriptor.recvfrom(4)
+        option, address = self.socket_descriptor.recvfrom(4)
+        self.address = address
         option = get_message("i", option)
         print("Option:{}".format(option))
 
@@ -30,7 +60,7 @@ class RequestHandler(threading.Thread):
         requested_message_size = get_message("q", requested_message_size)
         print("Requested message size:{}".format(requested_message_size))
 
-        message_block_size_bytes = get_byte_data("h", MESSAGE_BLOCK)
+        message_block_size_bytes = get_byte_data("H", MESSAGE_BLOCK)
         print("Sending to client the message block size.")
         self.socket_descriptor.sendto(message_block_size_bytes, self.address)
 

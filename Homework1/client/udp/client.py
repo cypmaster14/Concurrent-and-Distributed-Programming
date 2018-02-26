@@ -2,16 +2,39 @@ import socket
 import time
 
 from settings import *
-from utils import get_byte_data, get_message
+from utils import get_byte_data, get_message, generate_message_block
 
 
 def stream_send_file(sock, server_address, message_block, file_size):
-    message_sent = 0
-    bytes_send = 0
-    start_transimision = time.time()
+    messages_sent = 0
+    bytes_sent = 0
+    start_transmission = time.time()
 
     print("Stream a file of size:{}".format(file_size))
     print("Message block:{}".format(message_block))
+
+    while file_size > 0:
+        if message_block <= file_size:
+            size = message_block
+        else:
+            size = file_size
+
+        message = generate_message_block(size).encode("utf-8")
+        print(message)
+        sock.sendto(message, server_address)
+        file_size -= size
+
+        print("Remains {} bytes to transfer".format(file_size))
+        messages_sent += 1
+        bytes_sent += size
+        time.sleep(1)
+
+    print("File was sent")
+
+    transmission_duration = time.time() - start_transmission
+    print("Transmission duration: {}".format(transmission_duration))
+    print("Number of sent messages: {}".format(messages_sent))
+    print("Number of sent bytes: {}".format(bytes_sent))
 
 
 def stop_and_wait_send_file(sock, server_address, message_block, file_size):
@@ -23,44 +46,37 @@ def main():
     server_address = (IP_ADDRESS, UDP_PORT)
 
     sock.sendto("ping".encode("utf-8"), server_address)
-
     new_port, address = sock.recvfrom(2)
     new_port = get_message("H", new_port)
     print("New port:{}".format(new_port))
 
-    sock.sendto("0".encode("utf-8"), server_address)
-    sock.shutdown(socket.SHUT_RDWR)
-    sock.close()
+    # Send to Server ACK that the new port was received
+    print("Send to Server ACK that the new port was received")
+    sock.sendto("ok".encode("utf-8"), server_address)
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 5)
-    client_server_address = (address[0], new_port)
-
-    print(address, client_server_address)
-
-    client_socket.bind(client_server_address)
-    print(client_server_address)
+    client_address = (IP_ADDRESS, new_port)
 
     option = STREAMING_OPTION
     option_bytes = get_byte_data("i", option)
-    print("Send to server the option:{}".format(option))
-    client_socket.sendto(option_bytes, client_server_address)
+    print("Send to Server the option:{}".format(option))
+    client_socket.sendto(option_bytes, client_address)
 
     file_size = 50 * ONE_KILOBYTE
-    file_size_bytes = get_byte_data("q", file_size)
-    print("Send to server the file size:{}".format(file_size))
-    client_socket.sendto(file_size_bytes, client_server_address)
+    file_bytes_size = get_byte_data("q", file_size)
+    print(len(file_bytes_size))
+    print("Send to Server the file size:{}".format(file_size))
+    client_socket.sendto(file_bytes_size, client_address)
 
-    print(client_socket)
+    print("Waiting to receive the message block")
+    message_block, _ = client_socket.recvfrom(2)
+    message_block = get_message("H", message_block)
+    print(message_block)
 
-    message_block, client_server_address = client_socket.recvfrom(2)
-    message_block = get_message("h", message_block)
-    print("Server will accept blocks of size:{}".format(message_block))
-
-    if option_bytes == STREAMING_OPTION:
-        stream_send_file(client_socket, client_server_address, message_block, file_size)
+    if option == STREAMING_OPTION:
+        stream_send_file(client_socket, client_address, message_block, file_size)
     else:
-        stop_and_wait_send_file(client_socket, client_server_address, message_block, file_size)
+        stop_and_wait_send_file(client_socket, client_address, message_block, file_size)
 
 
 if __name__ == '__main__':

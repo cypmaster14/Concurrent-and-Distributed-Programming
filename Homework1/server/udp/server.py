@@ -11,7 +11,7 @@ def main():
 
     print("Waiting clients at: {}:{}".format(IP_ADDRESS, UDP_PORT))
     while True:
-        data, address = sock.recvfrom(4)  # Ping
+        data, address = sock.recvfrom(4)
         print(data, address)
 
         # Send to the client the port for a new socket connection that will be served by the spawn thread
@@ -20,13 +20,15 @@ def main():
         client_port_bytes = get_byte_data("H", client_port)
         sock.sendto(client_port_bytes, address)
 
-        # ACK for the new port
-        data, address = sock.recvfrom(1)
-        client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        client_sock.bind((address[0], client_port))
+        client_address = (IP_ADDRESS, client_port)
+
+        data, address = sock.recvfrom(2)
+        print("Message received", data, address)
         print("Client received the new port")
 
-        request_handler = RequestHandler(client_sock, (address[0], client_port))
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        client_socket.bind(client_address)
+        request_handler = RequestHandler(client_socket, client_address)
         request_handler.start()
 
 
