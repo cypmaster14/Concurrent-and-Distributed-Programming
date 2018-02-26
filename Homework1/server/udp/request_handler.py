@@ -32,9 +32,9 @@ class RequestHandler(threading.Thread):
 
                 messages_received += 1
                 bytes_received += len(message)
-                time.sleep(1)
                 if len(message) != MESSAGE_BLOCK:
                     break
+                time.sleep(1)
 
         print("File was received")
 
@@ -47,6 +47,37 @@ class RequestHandler(threading.Thread):
     def stop_and_wait(self, total_message_size):
         print("Stop and wait a file of size:{}".format(total_message_size))
         print("Message block:{}".format(MESSAGE_BLOCK))
+
+        messages_received = 0
+        bytes_received = 0
+        with open(FILE_NAME_UDP, mode="wb") as file_object:
+            while True:
+                message, address = self.socket_descriptor.recvfrom(MESSAGE_BLOCK)
+                if not message:
+                    break
+
+                file_object.write(message)
+                print("Received {} bytes".format(len(message)))
+
+                # Send ACK to Client
+                messages_received += 1
+                bytes_received += len(messages_received)
+                ack = bytes_received + 1
+                ack_bytes = get_byte_data("q", ack)
+                print("Send ACK: {} to client".format(ack))
+                self.socket_descriptor.sendto(ack_bytes, address)
+
+                if len(message) != MESSAGE_BLOCK:
+                    break
+
+                time.sleep(1)
+
+        print("File was received")
+        self.socket_descriptor.close()
+
+        print("Protocol: UDP    ")
+        print("Number of messages read: {}".format(messages_received))
+        print("Number of bytes received: {}".format(bytes_received))
 
     def run(self):
         print("Handling client requests")

@@ -22,11 +22,11 @@ def stream_send_file(sock, server_address, message_block, file_size):
         message = generate_message_block(size).encode("utf-8")
         print(message)
         sock.sendto(message, server_address)
-        file_size -= size
 
         print("Remains {} bytes to transfer".format(file_size))
         messages_sent += 1
         bytes_sent += size
+        file_size -= size
         time.sleep(1)
 
     print("File was sent")
@@ -38,7 +38,40 @@ def stream_send_file(sock, server_address, message_block, file_size):
 
 
 def stop_and_wait_send_file(sock, server_address, message_block, file_size):
-    pass
+    print("Stop and wait a file of size:{}".format(file_size))
+    print("Message block:{}".format(message_block))
+
+    start_transmission = time.time()
+    bytes_sent = 0
+    messages_sent = 0
+
+    while file_size > 0:
+        if MESSAGE_BLOCK < file_size:
+            size = message_block
+        else:
+            size = file_size
+
+        message = generate_message_block(size).encode("utf-8")
+        print(message)
+        sock.sendto(message, server_address)
+
+        print("Waiting for ACK from Server")
+        ack = sock.recvfrom(8)
+        ack = get_message("q", ack)
+        print("ACK: {}".format(ack))
+
+        messages_sent += 1
+        bytes_sent += size
+        file_size -= size
+        print("Remains {} bytes to transfer".format(file_size))
+        time.sleep(1)
+
+    print("File was sent")
+
+    transmission_duration = time.time() - start_transmission
+    print("Transmission duration: {}".format(transmission_duration))
+    print("Number of sent messages: {}".format(messages_sent))
+    print("Number of sent bytes: {}".format(bytes_sent))
 
 
 def main():
