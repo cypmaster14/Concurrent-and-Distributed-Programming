@@ -28,7 +28,7 @@ class RequestHandler(threading.Thread):
 
                 messages_received += 1
                 bytes_received += len(message)
-                time.sleep(1)
+                # time.sleep(1)
 
         print("File was received")
         self.socket_descriptor.close()
@@ -45,7 +45,15 @@ class RequestHandler(threading.Thread):
         bytes_received = 0
         with open(FILE_NAME, mode="wb") as file_object:
             while True:
-                message = self.socket_descriptor.recv(MESSAGE_BLOCK)
+                self.socket_descriptor.settimeout(TIMEOUT_TIME + 1.0)
+                try:
+                    message = self.socket_descriptor.recv(MESSAGE_BLOCK)
+                except Exception as err:
+                    print(err)
+                    continue
+                else:
+                    self.socket_descriptor.settimeout(0)
+
                 if not message:
                     break
 
@@ -60,7 +68,7 @@ class RequestHandler(threading.Thread):
                 print("Send ACK: {} to client".format(ack))
                 self.socket_descriptor.send(ack_bytes)
 
-                time.sleep(1)
+                # time.sleep(1)
 
         print("File was received")
         self.socket_descriptor.close()
@@ -80,7 +88,7 @@ class RequestHandler(threading.Thread):
         requested_message_size = get_message("q", requested_message_size)
         print("Requested message size:{}".format(requested_message_size))
 
-        message_block_bytes = get_byte_data("h", MESSAGE_BLOCK)
+        message_block_bytes = get_byte_data("H", MESSAGE_BLOCK)
         print("Sending to client the message block size.")
         self.socket_descriptor.send(message_block_bytes)
 

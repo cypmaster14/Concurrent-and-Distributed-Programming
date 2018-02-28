@@ -101,4 +101,7 @@ ENV/
 .mypy_cache/
 
 # Intellij Files
-**/.idea/*
+**/.idea/
+
+# Test Files
+**/*.txt

@@ -27,7 +27,7 @@ def stream_send_file(sock: socket.socket, message_block: int, file_size: int):
         print("Remains {} bytes to transfer".format(file_size))
         messages_sent += 1
         bytes_sent += size
-        time.sleep(1)
+        # time.sleep(1)
 
     print("File was sent")
     sock.shutdown(socket.SHUT_RDWR)
@@ -57,16 +57,28 @@ def stop_and_wait_send_file(sock: socket.socket, message_block: int, file_size: 
         print(message)
         sock.send(message)
 
-        print("Waiting for ACK from Server")
-        ack = sock.recv(8)
-        ack = get_message("q", ack)
-        print("ACK: {}".format(ack))
+        while True:
+            print("Waiting for ACK from Server")
+
+            sock.settimeout(TIMEOUT_TIME)
+            try:
+                ack = sock.recv(8)
+                ack = get_message("q", ack)
+                print("ACK: {}".format(ack))
+            except Exception as err:
+                print(err)
+                print("Didn't received the ACK from server. Resend the block of message")
+                sock.send(message)
+            else:
+                sock.settimeout(0)
+                break
 
         messages_sent += 1
         bytes_sent += size
         file_size -= size
         print("Remains {} bytes to transfer".format(file_size))
-        time.sleep(1)
+
+        # time.sleep(1)
 
     print("File was sent")
     sock.shutdown(socket.SHUT_RDWR)
@@ -87,13 +99,13 @@ def main():
     print("Send to server the option:{}".format(option))
     sock.send(option_bytes)
 
-    file_size = 50 * ONE_KILOBYTE
+    file_size = 10 * ONE_MEGABYTE
     requested_file_size_bytes = get_byte_data("q", file_size)
     print("Send to server the file size:{}".format(file_size))
     sock.send(requested_file_size_bytes)
 
     message_block = sock.recv(2)
-    message_block = get_message("h", message_block)
+    message_block = get_message("H", message_block)
     print("Server will accept blocks of size:{}".format(message_block))
 
     if option == STREAMING_OPTION:

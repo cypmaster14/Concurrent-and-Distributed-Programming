@@ -34,7 +34,8 @@ class RequestHandler(threading.Thread):
                 bytes_received += len(message)
                 if len(message) != MESSAGE_BLOCK:
                     break
-                time.sleep(1)
+
+                # time.sleep(1)
 
         print("File was received")
 
@@ -52,8 +53,17 @@ class RequestHandler(threading.Thread):
         bytes_received = 0
         with open(FILE_NAME_UDP, mode="wb") as file_object:
             while True:
-                message, address = self.socket_descriptor.recvfrom(MESSAGE_BLOCK)
+                self.socket_descriptor.settimeout(TIMEOUT_TIME + 1.0)
+                try:
+                    message, address = self.socket_descriptor.recvfrom(MESSAGE_BLOCK)
+                except Exception as err:
+                    print(err)
+                    continue
+                else:
+                    self.socket_descriptor.settimeout(0)
+
                 if not message:
+                    self.socket_descriptor.settimeout(TIMEOUT_TIME + 1.0)
                     break
 
                 file_object.write(message)
@@ -61,7 +71,7 @@ class RequestHandler(threading.Thread):
 
                 # Send ACK to Client
                 messages_received += 1
-                bytes_received += len(messages_received)
+                bytes_received += len(message)
                 ack = bytes_received + 1
                 ack_bytes = get_byte_data("q", ack)
                 print("Send ACK: {} to client".format(ack))
@@ -70,12 +80,12 @@ class RequestHandler(threading.Thread):
                 if len(message) != MESSAGE_BLOCK:
                     break
 
-                time.sleep(1)
+                # time.sleep(1)
 
         print("File was received")
         self.socket_descriptor.close()
 
-        print("Protocol: UDP    ")
+        print("Protocol: UDP")
         print("Number of messages read: {}".format(messages_received))
         print("Number of bytes received: {}".format(bytes_received))
 
@@ -93,6 +103,7 @@ class RequestHandler(threading.Thread):
 
         message_block_size_bytes = get_byte_data("H", MESSAGE_BLOCK)
         print("Sending to client the message block size.")
+        time.sleep(0.5)
         self.socket_descriptor.sendto(message_block_size_bytes, self.address)
 
         if option == STREAMING_OPTION:
