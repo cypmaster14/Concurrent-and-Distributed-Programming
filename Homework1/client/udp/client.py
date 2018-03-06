@@ -13,22 +13,35 @@ def stream_send_file(sock, server_address, message_block, file_size):
     print("Stream a file of size:{}".format(file_size))
     print("Message block:{}".format(message_block))
 
-    while file_size > 0:
-        if message_block <= file_size:
-            size = message_block
-        else:
-            size = file_size
+    with open(FIVE_HUNDRED_MB_FILE_LOCATION, mode="rb") as file_object:
+        while True:
+            message = file_object.read(message_block)
+            if len(message) == 0:
+                break
 
-        message = generate_message_block(size).encode("utf-8")
-        print(message)
-        sock.sendto(message, server_address)
+            sock.sendto(message, server_address)
 
-        print("Remains {} bytes to transfer".format(file_size))
-        messages_sent += 1
-        bytes_sent += size
-        file_size -= size
+            print("Remains {} bytes to transfer".format(file_size))
+            messages_sent += 1
+            bytes_sent += len(message)
+            file_size -= len(message)
 
-        # time.sleep(1)
+    # while file_size > 0:
+    #     if message_block <= file_size:
+    #         size = message_block
+    #     else:
+    #         size = file_size
+    #
+    #     message = generate_message_block(size).encode("utf-8")
+    #     # print(message)
+    #     sock.sendto(message, server_address)
+    #
+    #     print("Remains {} bytes to transfer".format(file_size))
+    #     messages_sent += 1
+    #     bytes_sent += size
+    #     file_size -= size
+    #
+    #     # time.sleep(1)
 
     print("File was sent")
 
@@ -46,38 +59,66 @@ def stop_and_wait_send_file(sock, server_address, message_block, file_size):
     bytes_sent = 0
     messages_sent = 0
 
-    while file_size > 0:
-        if MESSAGE_BLOCK < file_size:
-            size = message_block
-        else:
-            size = file_size
-
-        message = generate_message_block(size).encode("utf-8")
-        print(message)
-        sock.sendto(message, server_address)
-
+    with open(FIVE_HUNDRED_MB_FILE_LOCATION, mode="rb") as file_object:
         while True:
-            print("Waiting for ACK from Server")
-
-            sock.settimeout(TIMEOUT_TIME)
-            try:
-                ack, address = sock.recvfrom(8)
-                ack = get_message("q", ack)
-                print("ACK: {}".format(ack))
-            except Exception as err:
-                print(err)
-                print("Didn't received the AKC from server. Resend the block of message")
-                sock.sendto(message, server_address)
-            else:
-                sock.settimeout(0)
+            message = file_object.read(message_block)
+            if len(message) == 0:
                 break
 
-        messages_sent += 1
-        bytes_sent += size
-        file_size -= size
-        print("Remains {} bytes to transfer".format(file_size))
+            sock.sendto(message, server_address)
 
-        # time.sleep(1)
+            while True:
+                print("Waiting for ACK from Server")
+
+                sock.settimeout(TIMEOUT_TIME)
+                try:
+                    ack, address = sock.recvfrom(8)
+                    ack = get_message("q", ack)
+                    print("ACK: {}".format(ack))
+                except Exception as err:
+                    print(err)
+                    print("Didn't received the AKC from server. Resend the block of message")
+                    sock.sendto(message, server_address)
+                else:
+                    sock.settimeout(0)
+                    break
+
+            messages_sent += 1
+            bytes_sent += len(message)
+            file_size -= len(message)
+            print("Remains {} bytes to transfer".format(file_size))
+
+    # while file_size > 0:
+    #     if MESSAGE_BLOCK < file_size:
+    #         size = message_block
+    #     else:
+    #         size = file_size
+    #
+    #     message = generate_message_block(size).encode("utf-8")
+    #     # print(message)
+    #     sock.sendto(message, server_address)
+    #
+    #     while True:
+    #         print("Waiting for ACK from Server")
+    #
+    #         sock.settimeout(TIMEOUT_TIME)
+    #         try:
+    #             ack, address = sock.recvfrom(8)
+    #             ack = get_message("q", ack)
+    #             print("ACK: {}".format(ack))
+    #         except Exception as err:
+    #             print(err)
+    #             print("Didn't received the AKC from server. Resend the block of message")
+    #             sock.sendto(message, server_address)
+    #         else:
+    #             sock.settimeout(0)
+    #             break
+    #
+    #     messages_sent += 1
+    #     file_size -= size
+    #     print("Remains {} bytes to transfer".format(file_size))
+
+    # time.sleep(1)
 
     print("File was sent")
 
@@ -103,13 +144,13 @@ def main():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_address = (IP_ADDRESS, new_port)
 
-    option = STOP_AND_WAIT_OPTION
+    option = MECHANISM_OPTION
     option_bytes = get_byte_data("i", option)
     print("Send to Server the option:{}".format(option))
     client_socket.sendto(option_bytes, client_address)
     time.sleep(0.5)
 
-    file_size = 10 * ONE_MEGABYTE
+    file_size = FILE_SIZE
     file_bytes_size = get_byte_data("q", file_size)
     print(len(file_bytes_size))
     print("Send to Server the file size:{}".format(file_size))
