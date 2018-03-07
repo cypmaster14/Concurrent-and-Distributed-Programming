@@ -1,0 +1,29 @@
+TCP
+	- Streaming 500MB =  8.680207967758179  seconds (blocks of 65000 bytes)
+	    - 7693 sent messages
+	    - 8391 received messages
+	    - 524228000 bytes sent
+	    - 524228000 bytes received (0% messages lost)
+	- Stop and Wait 100 MB = 11.359231948852539 seconds (blocks of 65000 bytes)
+	    - 7693 sent messages
+   	    - 7693 received messages
+  	    - 524228000 bytes sent
+	    - 524228000 bytes received (0% messages lost)
+
+UDP
+	- Streaming 500MB = 8.350532054901123 seconds (blocks of 65000 bytes)
+	    - 7693 sent messages
+	    - 7164 received messages (6.88 % lost messages)
+	    - 524228000 bytes sent
+	    - 489903000 bytes received (6.88 % messages lost)
+	- Stop and Wait 500 MB = 12.951521873474121  seconds (blocks of 65000 bytes)
+	    - 7693 sent messages
+	    - 524228000 bytes sent
+	    - 524228000 bytes received (0% messages lost)
+	    - 524228000 bytes sent
+	    - 524228000 bytes received
+
+Client specifies the size of the file that will be transferred.
+The client generates random each chunk of message that is sent so will be able to sent messages of any size.
+Both of the servers are concurrent.
+All the parameters are declared in the file: 'settings.py'
